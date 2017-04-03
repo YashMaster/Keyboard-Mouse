@@ -5,8 +5,9 @@
 #include "Keyboard.h"
 #include "nRF24L01.h"
 #include "RF24.h"
+#include "I2Cdev.h"
 
-const uint8_t MOUSE_SS = 5;
+const uint8_t MOUSE_SS = 5; 
 
 const uint8_t SOFT_SPI_MISO_PIN_MOUSE = 0;
 const uint8_t SOFT_SPI_MOSI_PIN_MOUSE = 1;
