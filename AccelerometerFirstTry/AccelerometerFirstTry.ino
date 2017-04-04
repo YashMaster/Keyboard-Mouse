@@ -9,10 +9,15 @@ const int MPU_addr=0x68;  // I2C address of the MPU-6050
 
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 
+const int minMove = 100, divisor = 50;
+long xSum = 0, ySum = 0, zSum = 0, lastResetTime = 0;
+long xVal = 0, yVal = 0;
+
 RunningAverage XRA;
 RunningAverage YRA;
 RunningAverage ZRA;
 
+PointStorage xStorage, yStorage, zStorage;
 
 
 void setup(){
@@ -29,8 +34,6 @@ void setup(){
   Serial.begin(115200);
 }
 
-const int minMove = 100, divisor = 50;
-
 static inline int8_t sign(int val) {
  if (val < 0) return -1;
  if (val==0) return 0;
@@ -45,17 +48,18 @@ inline int simplifyInt(int in){
 }
 
 void moveMouse(int16_t xAccel, int16_t yAccel){
-  if(abs(xAccel) < minMove && abs(yAccel) < minMove){
-    return;
-  }
-  int xVal = simplifyInt(xAccel);
-  int yVal = simplifyInt(yAccel);
+//  if(abs(xAccel) < minMove && abs(yAccel) < minMove){
+//    return;
+//  }
+//  int xVal = simplifyInt(xAccel);
+//  int yVal = simplifyInt(yAccel);
+  xVal = xAccel / 10;
+  yVal = yAccel / 10;
   Mouse.move(xVal, yVal, 0);
   Serial.println("INPUT - X: " + String(xAccel) + "  Y: " + String(yAccel));
   Serial.println("X: " + String(xVal) + "  Y: " + String(yVal));
 }
 
-long xSum = 0, ySum = 0, zSum = 0, lastResetTime = 0;
 void loop(){
   if(micros() - lastResetTime > 1000){
     xSum = ySum = zSum = 0;
@@ -75,20 +79,27 @@ void loop(){
 //  Serial.print(" | AcY = "); Serial.print(AcY - YRA.getRunningAverage());
 //  Serial.print(" | AcZ = "); Serial.print(AcZ - ZRA.getRunningAverage());
 
-  xSum += (AcX - XRA.getRunningAverage());
-  ySum += (AcY - YRA.getRunningAverage());
-  zSum += (AcZ - ZRA.getRunningAverage());
+  xStorage.addReading(AcX);
+  yStorage.addReading(AcY);
+
+  if(xStorage.isFull()){
+    xVal = xStorage.getAverage() - XRA.getRunningAverage();
+    yVal = yStorage.getAverage() - YRA.getRunningAverage();
+
+    moveMouse(xVal, yVal);
+    
+    XRA.nextVal(xStorage.getAverage());
+    YRA.nextVal(yStorage.getAverage());
+    ZRA.nextVal(AcZ);
+
+    xStorage.flush();
+    yStorage.flush();
+  }
 //
 //  Serial.print("XSUM: "); Serial.print(xSum );
 //  Serial.print(" | YSUM: "); Serial.print(ySum);
 //  Serial.print(" | ZSUM: "); Serial.println(zSum);
-
-  moveMouse(xSum, ySum);
   
-
-  XRA.nextVal(AcX);
-  YRA.nextVal(AcY);
-  ZRA.nextVal(AcZ);
 
   delay(10);
 }
