@@ -22,10 +22,14 @@ void setup(){
   Wire.write(0x6B);  // PWR_MGMT_1 register
   Wire.write(0);     // set to zero (wakes up the MPU-6050)
   Wire.endTransmission(true);
+  Wire.beginTransmission(0b1101000); //I2C address of the MPU
+  Wire.write(0x1C); //Accessing the register 1C - Acccelerometer Configuration (Sec. 4.5)
+  Wire.write(0b00010000); //Setting the accel to +/- 2g
+  Wire.endTransmission();
   Serial.begin(115200);
 }
 
-const int minMove = 150, divisor = 100;
+const int minMove = 100, divisor = 50;
 
 static inline int8_t sign(int val) {
  if (val < 0) return -1;
@@ -37,7 +41,7 @@ inline int simplifyInt(int in){
   if(abs(in) < minMove){
     return 0;
   }
-  return int(in - sign(in)*minMove) / divisor;
+  return in / divisor;
 }
 
 void moveMouse(int16_t xAccel, int16_t yAccel){
@@ -46,9 +50,9 @@ void moveMouse(int16_t xAccel, int16_t yAccel){
   }
   int xVal = simplifyInt(xAccel);
   int yVal = simplifyInt(yAccel);
-  //Mouse.move(xVal, yVal, 0);
+  Mouse.move(xVal, yVal, 0);
   Serial.println("INPUT - X: " + String(xAccel) + "  Y: " + String(yAccel));
-  //Serial.println("X: " + String(xVal) + "  Y: " + String(yVal));
+  Serial.println("X: " + String(xVal) + "  Y: " + String(yVal));
 }
 
 long xSum = 0, ySum = 0, zSum = 0, lastResetTime = 0;
